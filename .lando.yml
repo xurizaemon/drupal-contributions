@@ -86,9 +86,11 @@ tooling:
     dir: /app/web/core
 
 events:
+  post-start:
+    - if [ ! -d web ] ; then php /app/scripts/get-drupal.php ; fi
   post-destroy:
     - chmod 777 -R web/sites/default
-    - rm -rfv web
+    - rm -rfv /app/web
   pre-rebuild:
     - rm -rfv web
     - appserver: php /app/scripts/get-drupal.php
