@@ -15,6 +15,7 @@ services:
       - cd /app/web && composer require drush/drush && composer install
       - mkdir -p private/browsertest_output
       - yarn install --non-interactive --cwd /app/web/core
+      - ./vendor/bin/phpcs --config-set installed_paths /app/web/vendor/drupal/coder/coder_sniffer
     overrides:
       environment:
         SIMPLETEST_BASE_URL: "https://drupal-contributions.lndo.site/"
@@ -73,17 +74,25 @@ tooling:
     user: www-data
     cmd:
       - appserver: php /app/web/vendor/bin/phpunit -c /app/phpunit.xml
-
   core-check:
     service: appserver
     cmd:
       - appserver: php /app/scripts/core-check.php
-
   nightwatch:
     service: appserver
     description: Run Nightwatch.js
     cmd: yarn test:nightwatch
     dir: /app/web/core
+  phpcs:
+    service: appserver
+    user: www-data
+    cmd: php /app/web/vendor/bin/phpcs
+    dir: /app/web
+  composer:
+    service: appserver
+    user: www-data
+    cmd: composer
+    dir: /app/web
 
 events:
   post-destroy:
