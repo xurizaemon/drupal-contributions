@@ -67,6 +67,12 @@ tooling:
     description: Creat a patch from your committed changes on your branch.
     cmd:
       - appserver: php /app/scripts/patch-helpers.php --create-patch
+  get-drupal:
+    service: appserver
+    description: Fetch a fresh copy of Drupal
+    cmd:
+      - rm -rfv web/
+      - php /app/scripts/get-drupal.php
   nightwatch:
     service: appserver
     description: Run Nightwatch.js
@@ -111,8 +117,9 @@ events:
   post-destroy:
     - chmod 777 -R web/sites/default
     - rm -rfv web
-  pre-rebuild:
-    - rm -rfv web
-    - appserver: php /app/scripts/get-drupal.php
   post-rebuild:
     - appserver: /app/scripts/rebuild.sh
+## I moved this to a manual command.
+#  pre-rebuild:
+#    - rm -rfv web
+#    - appserver: php /app/scripts/get-drupal.php
