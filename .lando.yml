@@ -8,10 +8,13 @@ services:
     composer_version: 2-latest
     build_as_root:
       # Note that you will want to use the script for the major version of node you want to install
-      # See: https://github.com/nodesource/distributions/blob/master/README.md#installation-instructions
-      - curl -sL https://deb.nodesource.com/setup_16.x | bash -
-      - apt-get install -y nodejs
-      - npm install --global yarn
+      # See: https://github.com/nodesource/distributions#debian-and-ubuntu-based-distributions
+      - apt-get update
+      - apt-get install -y ca-certificates curl gnupg
+      - curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+      - NODE_MAJOR=20 echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+      - apt-get update
+      - apt-get install nodejs -y
     run:
       - cd /app/web && composer require drush/drush && composer install
       - mkdir -p private/browsertest_output
@@ -51,11 +54,24 @@ tooling:
     service: appserver
     cmd:
       web/vendor/drush/drush/drush --root=/app/web --uri=https://drupal-contributions.lndo.site
-  si:
+  code-check:
     service: appserver
-    description: Install Drupal
+    dir: /app/web
+    cmd: bash ./core/scripts/dev/commit-code-check.sh
+  core-check:
+    service: appserver
     cmd:
-      - appserver: /app/scripts/site-install.sh
+      - appserver: php /app/scripts/core-check.php
+  create-patch:
+    service: appserver
+    description: Creat a patch from your committed changes on your branch.
+    cmd:
+      - appserver: php /app/scripts/patch-helpers.php --create-patch
+  nightwatch:
+    service: appserver
+    description: Run Nightwatch.js
+    cmd: yarn test:nightwatch
+    dir: /app/web/core
   patch:
     service: appserver
     description: Get a patch from a Drupal project issue queue
@@ -64,6 +80,20 @@ tooling:
     options:
       url:
         describe: The url of the patch from the issue queue
+  phpcbf:
+    service: appserver
+    cmd: /app/vendor/bin/phpcbf --standard=Drupal,DrupalPractice
+  phpcs:
+    service: appserver
+    cmd: /app/vendor/bin/phpcs --standard=Drupal,DrupalPractice
+  phpstan:
+    service: appserver
+    cmd: vendor/bin/phpstan analyze --configuration="core/phpstan.neon.dist"
+  phpunit:
+    service: appserver
+    user: www-data
+    cmd:
+      - appserver: php /app/web/vendor/bin/phpunit -c /app/phpunit.xml
   revert:
     service: appserver
     description: Apply a patch from a Drupal project issue queue
@@ -71,27 +101,11 @@ tooling:
       - appserver: php /app/scripts/patch-helpers.php --revert
     patch:
       describe: The name of the patch to revert; i.e. DESCRIPTION-XXXXXXX-YY.patch
-  create-patch:
+  si:
     service: appserver
-    description: Creat a patch from your committed changes on your branch.
+    description: Install Drupal
     cmd:
-      - appserver: php /app/scripts/patch-helpers.php --create-patch
-  phpunit:
-    service: appserver
-    user: www-data
-    cmd:
-      - appserver: php /app/web/vendor/bin/phpunit -c /app/phpunit.xml
-
-  core-check:
-    service: appserver
-    cmd:
-      - appserver: php /app/scripts/core-check.php
-
-  nightwatch:
-    service: appserver
-    description: Run Nightwatch.js
-    cmd: yarn test:nightwatch
-    dir: /app/web/core
+      - appserver: /app/scripts/site-install.sh
 
 events:
   post-destroy:
