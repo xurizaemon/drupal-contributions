@@ -46,18 +46,7 @@ tooling:
     service: appserver
     cmd:
       web/vendor/drush/drush/drush --root=/app/web --uri=https://drupal-contributions.lndo.site
-<<<<<<< HEAD
-  rector:
-    service: appserver
-    cmd: web/vendor/bin/rector
-  si:
-=======
-  code-check:
-    service: appserver
-    dir: /app/web
-    cmd: bash ./core/scripts/dev/commit-code-check.sh
   core-check:
->>>>>>> 4976f98... Drupal 11.x and some Lando tooling
     service: appserver
     cmd:
       - appserver: php /app/scripts/core-check.php
@@ -66,6 +55,12 @@ tooling:
     description: Creat a patch from your committed changes on your branch.
     cmd:
       - appserver: php /app/scripts/patch-helpers.php --create-patch
+  get-drupal:
+    service: appserver
+    description: Fetch a fresh copy of Drupal
+    cmd:
+      - rm -rfv web/
+      - php /app/scripts/get-drupal.php
   nightwatch:
     service: appserver
     description: Run Nightwatch.js
@@ -93,6 +88,10 @@ tooling:
     user: www-data
     cmd:
       - appserver: php /app/web/vendor/bin/phpunit -c /app/phpunit.xml
+  rector:
+    service: appserver
+    cmd:
+      - web/vendor/bin/rector
   revert:
     service: appserver
     description: Apply a patch from a Drupal project issue queue
@@ -105,7 +104,6 @@ tooling:
     description: Install Drupal
     cmd:
       - appserver: /app/scripts/site-install.sh
-
   xdebug-on:
     service: appserver
     description: Enable xdebug for Apache.
@@ -123,9 +121,10 @@ events:
     - if [ ! -d web ] ; then php /app/scripts/get-drupal.php ; fi
   post-destroy:
     - chmod 777 -R web/sites/default
-    - echo "Removing web/" && rm -rf /app/web
-  pre-rebuild:
-    - echo "Removing web/" && rm -rf web
-    - appserver: php /app/scripts/get-drupal.php
+    - rm -rfv web
   post-rebuild:
     - appserver: /app/scripts/rebuild.sh
+## I moved this to a manual command.
+#  pre-rebuild:
+#    - rm -rfv web
+#    - appserver: php /app/scripts/get-drupal.php
